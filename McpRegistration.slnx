@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/McpRegistration.Cli/McpRegistration.Cli.csproj" />
+    <Project Path="src/McpRegistration.Core/McpRegistration.Core.csproj" />
+  </Folder>
+</Solution>

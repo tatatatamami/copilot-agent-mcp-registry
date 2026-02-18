@@ -1,0 +1,23 @@
+{
+  "name": "sample-data-mcp",
+  "description": "Sample MCP server providing data analysis and transformation capabilities",
+  "version": "1.0.0",
+  "company": "Contoso Corporation",
+  "status": "active",
+  "lifecycle": "production",
+  "owner": "Data Platform Team",
+  "authMethod": "api-key",
+  "contactEmail": "data-platform@contoso.com",
+  "endpointUrl": "https://sample-data-mcp.contoso.com",
+  "documentationUrl": "https://docs.contoso.com/mcp/sample-data",
+  "tags": [
+    "data-analysis",
+    "transformation",
+    "sample"
+  ],
+  "customProperties": {
+    "department": "Engineering",
+    "costCenter": "CC-1234",
+    "supportLevel": "production"
+  }
+}

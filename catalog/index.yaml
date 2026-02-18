@@ -1,0 +1,20 @@
+# MCP Server Catalog
+
+version: 1.0.0
+lastUpdated: 2026-02-18
+
+mcpServers:
+  - name: sample-data-mcp
+    path: apis/sample-data-mcp
+    company: Contoso Corporation
+    owner: Data Platform Team
+    lifecycle: production
+    status: active
+    tags:
+      - data-analysis
+      - transformation
+      - sample
+    description: Sample MCP server providing data analysis and transformation capabilities
+    registeredDate: 2026-02-18
+
+# Additional MCP servers will be listed here as they are registered
