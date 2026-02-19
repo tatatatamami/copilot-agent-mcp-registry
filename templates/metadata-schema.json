@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tatatatamami/copilot-agent-mcp-registry/schemas/metadata.json",
+  "title": "MCP Metadata Schema",
+  "description": "Schema for MCP server metadata registration",
+  "type": "object",
+  "required": [
+    "name",
+    "description",
+    "version",
+    "company",
+    "status",
+    "lifecycle",
+    "owner",
+    "authMethod"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "MCP server identifier (lowercase, hyphens only)",
+      "pattern": "^[a-z0-9-]+$",
+      "minLength": 3,
+      "maxLength": 63,
+      "examples": ["my-awesome-mcp", "customer-insights-mcp"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of the MCP server",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version number",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?$",
+      "examples": ["1.0.0", "2.1.0", "1.0.0-beta.1"]
+    },
+    "company": {
+      "type": "string",
+      "description": "Organization owning this MCP server",
+      "minLength": 2,
+      "maxLength": 100
+    },
+    "status": {
+      "type": "string",
+      "description": "Current operational status",
+      "enum": ["active", "deprecated", "planned"]
+    },
+    "lifecycle": {
+      "type": "string",
+      "description": "Development lifecycle stage",
+      "enum": [
+        "design",
+        "development",
+        "testing",
+        "preview",
+        "production",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "owner": {
+      "type": "string",
+      "description": "Team or person responsible for the MCP server",
+      "minLength": 2,
+      "maxLength": 100
+    },
+    "authMethod": {
+      "type": "string",
+      "description": "Authentication method required",
+      "enum": ["none", "api-key", "oauth2", "entra-id"]
+    },
+    "contactEmail": {
+      "type": "string",
+      "description": "Contact email for support",
+      "format": "email",
+      "examples": ["team@example.com"]
+    },
+    "endpointUrl": {
+      "type": "string",
+      "description": "MCP server endpoint URL",
+      "format": "uri",
+      "pattern": "^https?://",
+      "examples": ["https://api.example.com"]
+    },
+    "documentationUrl": {
+      "type": "string",
+      "description": "Link to documentation",
+      "format": "uri",
+      "pattern": "^https?://",
+      "examples": ["https://docs.example.com/api"]
+    },
+    "tags": {
+      "type": "array",
+      "description": "Tags for categorization and search",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 50
+      },
+      "uniqueItems": true,
+      "examples": [["analytics", "data", "ai"]]
+    },
+    "customProperties": {
+      "type": "object",
+      "description": "Additional custom metadata properties",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

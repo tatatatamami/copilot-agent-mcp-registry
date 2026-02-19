@@ -1,0 +1,134 @@
+name: Register to Azure API Center
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apis/**'
+  workflow_dispatch:
+
+env:
+  AZURE_API_CENTER_NAME: ${{ secrets.AZURE_API_CENTER_NAME }}
+  AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  register-api:
+    name: Register MCP to API Center
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get changed API directories
+        id: changed-apis
+        run: |
+          echo "Detecting changed API directories..."
+          CHANGED_DIRS=$(git diff --name-only HEAD~1 HEAD | grep '^apis/' | cut -d'/' -f1-2 | sort -u)
+          echo "Changed directories:"
+          echo "$CHANGED_DIRS"
+          
+          # Convert to JSON array for matrix
+          if [ -z "$CHANGED_DIRS" ]; then
+            echo "apis=[]" >> $GITHUB_OUTPUT
+          else
+            APIS_JSON=$(echo "$CHANGED_DIRS" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            echo "apis=$APIS_JSON" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Register APIs to API Center
+        if: steps.changed-apis.outputs.apis != '[]'
+        run: |
+          APIS='${{ steps.changed-apis.outputs.apis }}'
+          echo "Processing APIs: $APIS"
+          
+          for API_DIR in $(echo "$APIS" | jq -r '.[]'); do
+            echo "Processing $API_DIR..."
+            
+            API_NAME=$(basename "$API_DIR")
+            METADATA_FILE="$API_DIR/metadata.json"
+            OPENAPI_FILE="$API_DIR/openapi.json"
+            
+            if [ ! -f "$METADATA_FILE" ] || [ ! -f "$OPENAPI_FILE" ]; then
+              echo "Missing required files for $API_NAME, skipping..."
+              continue
+            fi
+            
+            # Extract metadata
+            DESCRIPTION=$(jq -r '.description' "$METADATA_FILE")
+            VERSION=$(jq -r '.version' "$METADATA_FILE")
+            LIFECYCLE=$(jq -r '.lifecycle' "$METADATA_FILE")
+            
+            echo "Registering API: $API_NAME (version $VERSION)"
+            
+            # Create or update API
+            az apic api create \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --service-name "$AZURE_API_CENTER_NAME" \
+              --api-id "$API_NAME" \
+              --title "$API_NAME" \
+              --type "rest" \
+              --description "$DESCRIPTION" \
+              --lifecycle-stage "$LIFECYCLE" \
+              || echo "API may already exist, continuing..."
+            
+            # Create version
+            az apic api version create \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --service-name "$AZURE_API_CENTER_NAME" \
+              --api-id "$API_NAME" \
+              --version-id "$VERSION" \
+              --title "$VERSION" \
+              --lifecycle-stage "$LIFECYCLE" \
+              || echo "Version may already exist, continuing..."
+            
+            # Create definition and import OpenAPI spec
+            az apic api definition create \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --service-name "$AZURE_API_CENTER_NAME" \
+              --api-id "$API_NAME" \
+              --version-id "$VERSION" \
+              --definition-id "openapi" \
+              --title "OpenAPI"
+              
+            az apic api definition import-specification \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --service-name "$AZURE_API_CENTER_NAME" \
+              --api-id "$API_NAME" \
+              --version-id "$VERSION" \
+              --definition-id "openapi" \
+              --format "inline" \
+              --value @"$OPENAPI_FILE" \
+              --specification '{"name":"openapi","version":"3.0.0"}'
+            
+            echo "✓ Successfully registered $API_NAME"
+          done
+
+      - name: Summary
+        if: steps.changed-apis.outputs.apis != '[]'
+        run: |
+          echo "## API Registration Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Successfully registered the following APIs to Azure API Center:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          APIS='${{ steps.changed-apis.outputs.apis }}'
+          for API_DIR in $(echo "$APIS" | jq -r '.[]'); do
+            API_NAME=$(basename "$API_DIR")
+            echo "- ✓ $API_NAME" >> $GITHUB_STEP_SUMMARY
+          done
