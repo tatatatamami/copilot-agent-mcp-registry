@@ -1,0 +1,181 @@
+[1mdiff --git a/src/McpRegistration.Core/Services/CopilotService.cs b/src/McpRegistration.Core/Services/CopilotService.cs[m
+[1mindex 35fe40b..6efd68c 100644[m
+[1m--- a/src/McpRegistration.Core/Services/CopilotService.cs[m
+[1m+++ b/src/McpRegistration.Core/Services/CopilotService.cs[m
+[36m@@ -1,225 +1,254 @@[m
+[31m-using McpRegistration.Core.Models;[m
+[32m+[m[32musing GitHub.Copilot.SDK;[m
+[32m+[m[32musing System.Text.Json;[m
+ [m
+ namespace McpRegistration.Core.Services;[m
+ [m
+ /// <summary>[m
+[31m-/// GitHub Copilot SDK integration for AI-powered assistance[m
+[31m-/// Fallback implementation: Uses Reflection for SDK compatibility[m
+[32m+[m[32m/// Service for integrating with GitHub Copilot SDK to provide intelligent suggestions[m
+ /// </summary>[m
+[31m-public class CopilotService[m
+[32m+[m[32mpublic class CopilotService : IAsyncDisposable[m
+ {[m
+[31m-    private readonly object? _session;[m
+[31m-    private readonly bool _isAvailable;[m
+[32m+[m[32m    private readonly CopilotClient? _client;[m
+[32m+[m[32m    private readonly SemaphoreSlim _initLock = new(1, 1);[m
+[32m+[m[32m    private bool _isInitialized;[m
+[32m+[m[41m    [m
+[32m+[m[32m    public bool IsAvailable => _client != null;[m
+ [m
+     public CopilotService()[m
+     {[m
+         try[m
+         {[m
+[31m-            // Load GitHub Copilot SDK via Reflection for compatibility[m
+[31m-            var copilotAssembly = System.Reflection.Assembly.Load("GitHub.Copilot");[m
+[31m-            var clientType = copilotAssembly.GetType("GitHub.Copilot.CopilotClient");[m
+[31m-            [m
+[31m-            if (clientType != null)[m
+[32m+[m[32m            // Initialize GitHub Copilot SDK client[m
+[32m+[m[32m            _client = new CopilotClient(new CopilotClientOptions[m
+             {[m
+[31m-                var client = System.Activator.CreateInstance(clientType);[m
+[31m-                var createSessionMethod = clientType.GetMethod("CreateSession");[m
+[31m-                _session = createSessionMethod?.Invoke(client, null);[m
+[31m-                _isAvailable = _session != null;[m
+[31m-                [m
+[31m-                if (_isAvailable)[m
+[31m-                {[m
+[31m-                    Console.WriteLine("?? GitHub Copilot SDK initialized successfully");[m
+[31m-                }[m
+[31m-            }[m
+[31m-            else[m
+[31m-            {[m
+[31m-                _isAvailable = false;[m
+[31m-                Console.WriteLine("??  GitHub Copilot SDK not found");[m
+[31m-            }[m
+[32m+[m[32m                AutoStart = true,[m
+[32m+[m[32m                UseLoggedInUser = true,[m
+[32m+[m[32m                LogLevel = "error" // Reduce log noise[m
+[32m+[m[32m            });[m
+[32m+[m[32m            Console.WriteLine("? GitHub Copilot SDK initialized successfully");[m
+         }[m
+         catch (Exception ex)[m
+         {[m
+[31m-            _isAvailable = false;[m
+[32m+[m[32m            // Copilot SDK not available or not configured[m
+[32m+[m[32m            Console.ForegroundColor = ConsoleColor.Yellow;[m
+             Console.WriteLine($"??  GitHub Copilot not available: {ex.Message}");[m
+             Console.WriteLine("   Continuing with basic functionality...");[m
+[32m+[m[32m            Console.ResetColor();[m
+[32m+[m[32m            _client = null;[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    private async Task<bool> EnsureInitializedAsync()[m
+[32m+[m[32m    {[m
+[32m+[m[32m        if (_client == null)[m
+[32m+[m[32m            return false;[m
+[32m+[m
+[32m+[m[32m        await _initLock.WaitAsync();[m
+[32m+[m[32m        try[m
+[32m+[m[32m        {[m
+[32m+[m[32m            if (!_isInitialized)[m
+[32m+[m[32m            {[m
+[32m+[m[32m                await _client.StartAsync();[m
+[32m+[m[32m                _isInitialized = true;[m
+[32m+[m[32m            }[m
+[32m+[m[32m            return true;[m
+[32m+[m[32m        }[m
+[32m+[m[32m        catch[m
+[32m+[m[32m        {[m
+[32m+[m[32m            return false;[m
+[32m+[m[32m        }[m
+[32m+[m[32m        finally[m
+[32m+[m[32m        {[m
+[32m+[m[32m            _initLock.Release();[m
+         }[m
+     }[m
+ [m
+[31m-    public bool IsAvailable => _isAvailable;[m
+ [m
+     /// <summary>[m
+[31m-    /// Suggest MCP server name based on description[m
+[32m+[m[32m    /// Suggest an MCP name based on description using AI[m
+     /// </summary>[m
+     public async Task<string> SuggestMcpNameAsync(string description)[m
+     {[m
+[31m-        if (!_isAvailable || _session == null)[m
+[31m-        {[m
+[32m+[m[32m        if (!await EnsureInitializedAsync())[m
+             return GenerateFallbackName(description);[m
+[31m-        }[m
+ [m
+         try[m
+         {[m
+[31m-            var prompt = $@"Generate a MCP server name based on this description: ""{description}""[m
+[32m+[m[32m            await using var session = await _client!.CreateSessionAsync(new SessionConfig[m
+[32m+[m[32m            {[m
+[32m+[m[32m                Model = "gpt-4o"[m
+[32m+[m[32m            });[m
+ [m
+[31m-Requirements:[m
+[31m-- lowercase only[m
+[31m-- use hyphens to separate words[m
+[31m-- maximum 50 characters[m
+[31m-- descriptive and memorable[m
+[31m-- follow naming conventions for APIs[m
+[31m-[m
+[31m-Reply with ONLY the suggested name, nothing else. No explanations.";[m
+[31m-[m
+[31m-            // Invoke SendAndWaitAsync via reflection[m
+[31m-            var sessionType = _session.GetType();[m
+[31m-            var sendMethod = sessionType.GetMethod("SendAndWaitAsync");[m
+[31m-            [m
+[31m-            if (sendMethod != null)[m
+[32m+[m[32m            var prompt = $@"Based on this MCP server description, suggest a concise, lowercase name using hyphens (kebab-case).[m
+[32m+[m[32mOnly return the name itself, nothing else.[m
+[32m+[m
+[32m+[m[32mDescription: {description}[m
+[32m+[m
+[32m+[m[32mExamples of good names:[m
+[32m+[m[32m- weather-api[m
+[32m+[m[32m- file-system-mcp[m
+[32m+[m[32m- database-connector[m
+[32m+[m
+[32m+[m[32mSuggested name:";[m
+[32m+[m
+[32m+[m[32m            var responseText = "";[m
+[32m+[m[32m            var done = new TaskCompletionSource();[m
+[32m+[m
+[32m+[m[32m            session.On(evt =>[m
+             {[m
+[31m-                var task = (Task<object>)sendMethod.Invoke(_session, new object[] { prompt })!;[m
+[31m-                var response = await task;[m
+[31m-                [m
+[31m-                // Get Text property from response[m
+[31m-                var textProperty = response.GetType().GetProperty("Text");[m
+[31m-                var responseText = (string)textProperty!.GetValue(response)!;[m
+[31m-                [m
+[31m-                var suggested = responseText.Trim().ToLower()[m
+[31m-                    .Replace(" ", "-")[m
+[31m-                    .Replace("_", "-");[m
+[32m+[m[32m                if (evt is AssistantMessageEvent msg)[m
+[32m+[m[32m                {[m
+[32m+[m[32m                    responseText += msg.Data.Content;[m
+[32m+[m[32m                }[m
+[32m+[m[32m                else if (evt is SessionIdleEvent)[m
+[32m+[m[32m                {[m
+[32m+[m[32m                    done.SetResult();[m
+[32m+[m[32m                }[m
+[32m+[m[32m            });[m
+ [m
+[31m-                // Clean up[m
+[31m-                suggested = System.Text.RegularExpressions.Regex.Replace(suggested, @"[^a-z0-9-]", "");[m
+[32m+[m[32m            await session.SendAsync(new MessageOptions { Prompt = prompt });[m
+[32m+[m[32m            await done.Task;[m
+[32m+[m
+[32m+[m[32m            if (!string.IsNullOrWhiteSpace(responseText))[m
+[32m+[m[32m            {[m
+[32m+[m[32m                var name = responseText.Trim().ToLower();[m
+[32m+[m[41m                [m
+[32m+[m[32m                // Clean up the response[m
+[32m+[m[32m                name = System.Text.RegularExpre
