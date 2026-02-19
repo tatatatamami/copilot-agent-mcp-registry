@@ -1,0 +1,17 @@
+{
+  "name": "my-test-mcp7",
+  "description": "test",
+  "version": "1.0.0",
+  "company": "test",
+  "status": "active",
+  "lifecycle": "design",
+  "owner": "tamami",
+  "authMethod": "none",
+  "contactEmail": "test@test.com",
+  "endpointUrl": "",
+  "documentationUrl": "",
+  "tags": [
+    "tag"
+  ],
+  "customProperties": {}
+}
