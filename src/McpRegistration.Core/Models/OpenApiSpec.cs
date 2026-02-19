@@ -14,6 +14,7 @@ public class OpenApiSpec
 public class OpenApiInfo
 {
     public string Title { get; set; } = string.Empty;
+    public string? Summary { get; set; }
     public string Description { get; set; } = string.Empty;
     public string Version { get; set; } = "1.0.0";
     public OpenApiContact? Contact { get; set; }

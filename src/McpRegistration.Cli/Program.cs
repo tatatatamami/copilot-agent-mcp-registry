@@ -110,6 +110,9 @@ class Program
         metadata.Description = PromptRequired("Description", 
             hint: "Brief description of what this MCP server does");
 
+        metadata.Summary = Prompt("Summary (one-line, optional)", 
+            hint: "Short summary for quick reference");
+
         // Use Copilot to suggest name
         if (copilotService.IsAvailable)
         {

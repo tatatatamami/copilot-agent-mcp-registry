@@ -16,6 +16,11 @@ public class McpMetadata
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
+    /// One-line summary of the MCP server (optional)
+    /// </summary>
+    public string Summary { get; set; } = string.Empty;
+
+    /// <summary>
     /// Version of the MCP server (required)
     /// </summary>
     public string Version { get; set; } = "1.0.0";

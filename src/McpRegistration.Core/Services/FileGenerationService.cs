@@ -40,6 +40,7 @@ public class FileGenerationService
             {
                 Title = metadata.Name,
                 Description = metadata.Description,
+                Summary = !string.IsNullOrEmpty(metadata.Summary) ? metadata.Summary : null,
                 Version = metadata.Version,
                 Contact = new OpenApiContact
                 {
@@ -99,9 +100,16 @@ public class FileGenerationService
     /// </summary>
     public string GenerateReadme(McpMetadata metadata)
     {
+        var summarySection = !string.IsNullOrEmpty(metadata.Summary) 
+            ? $@"
+> {metadata.Summary}
+
+" 
+            : "";
+
         return $@"# {metadata.Name}
 
-## Overview
+{summarySection}## Overview
 
 {metadata.Description}
 
