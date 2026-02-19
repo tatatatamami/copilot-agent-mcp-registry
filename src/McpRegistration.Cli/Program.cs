@@ -10,13 +10,17 @@ class Program
     {
         Console.WriteLine("===========================================");
         Console.WriteLine("  MCP Server Registration Assistant");
+        Console.WriteLine("  🤖 With GitHub Copilot Integration");
         Console.WriteLine("===========================================");
         Console.WriteLine();
 
         try
         {
+            // Initialize Copilot service
+            var copilotService = new CopilotService();
+            
             var repoPath = GetRepositoryPath();
-            var metadata = await CollectMetadataAsync();
+            var metadata = await CollectMetadataAsync(copilotService);
             
             var validationService = new ValidationService();
             var errors = validationService.ValidateMetadata(metadata);
@@ -94,7 +98,7 @@ class Program
         throw new InvalidOperationException("Not in a git repository. Please run this from within the repository.");
     }
 
-    static async Task<McpMetadata> CollectMetadataAsync()
+    static async Task<McpMetadata> CollectMetadataAsync(CopilotService copilotService)
     {
         var metadata = new McpMetadata();
 
@@ -102,11 +106,43 @@ class Program
         Console.WriteLine("(Press Enter to accept default values shown in brackets)");
         Console.WriteLine();
 
-        metadata.Name = PromptRequired("MCP Server Name (lowercase, use hyphens)", 
-            hint: "e.g., my-awesome-mcp");
-
+        // First, get description to help with name suggestion
         metadata.Description = PromptRequired("Description", 
             hint: "Brief description of what this MCP server does");
+
+        // Use Copilot to suggest name
+        if (copilotService.IsAvailable)
+        {
+            Console.Write("🤖 Generating name suggestion...");
+            var suggestedName = await copilotService.SuggestMcpNameAsync(metadata.Description);
+            Console.WriteLine($" {suggestedName}");
+            
+            metadata.Name = Prompt("MCP Server Name (lowercase, use hyphens)", suggestedName);
+            
+            // Validate with Copilot
+            var (isValid, message, suggestion) = await copilotService.ValidateFieldAsync("name", metadata.Name);
+            if (!isValid && message != null)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"⚠️  {message}");
+                if (suggestion != null)
+                {
+                    Console.WriteLine($"   Suggestion: {suggestion}");
+                }
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("✓ Name looks good!");
+                Console.ResetColor();
+            }
+        }
+        else
+        {
+            metadata.Name = PromptRequired("MCP Server Name (lowercase, use hyphens)", 
+                hint: "e.g., my-awesome-mcp");
+        }
 
         metadata.Version = Prompt("Version", "1.0.0");
 
