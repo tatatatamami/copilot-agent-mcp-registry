@@ -86,7 +86,6 @@ jobs:
               --title "$API_NAME" \
               --type "rest" \
               --description "$DESCRIPTION" \
-              --lifecycle-stage "$LIFECYCLE" \
               || echo "API may already exist, continuing..."
             
             # Create version
@@ -96,7 +95,6 @@ jobs:
               --api-id "$API_NAME" \
               --version-id "$VERSION_ID" \
               --title "$VERSION" \
-              --lifecycle-stage "$LIFECYCLE" \
               || echo "Version may already exist, continuing..."
             
             # Create definition and import OpenAPI spec
