@@ -1,0 +1,15 @@
+{
+  "name": "my-test-mcp-5",
+  "description": "test",
+  "version": "1.0.0",
+  "company": "test",
+  "status": "active",
+  "lifecycle": "development",
+  "owner": "tamami",
+  "authMethod": "api-key",
+  "contactEmail": "",
+  "endpointUrl": "",
+  "documentationUrl": "",
+  "tags": [],
+  "customProperties": {}
+}
