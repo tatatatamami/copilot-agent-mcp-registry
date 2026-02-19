@@ -1,27 +1,27 @@
 using McpRegistration.Core.Models;
-using System.Reflection;
 
 namespace McpRegistration.Core.Services;
 
 /// <summary>
 /// GitHub Copilot SDK integration for AI-powered assistance
+/// Fallback implementation: Uses Reflection for SDK compatibility
 /// </summary>
 public class CopilotService
 {
-    private readonly dynamic? _session;
+    private readonly object? _session;
     private readonly bool _isAvailable;
 
     public CopilotService()
     {
         try
         {
-            // Use reflection to load GitHub Copilot SDK dynamically
-            var copilotAssembly = Assembly.Load("GitHub.Copilot");
+            // Load GitHub Copilot SDK via Reflection for compatibility
+            var copilotAssembly = System.Reflection.Assembly.Load("GitHub.Copilot");
             var clientType = copilotAssembly.GetType("GitHub.Copilot.CopilotClient");
             
             if (clientType != null)
             {
-                var client = Activator.CreateInstance(clientType);
+                var client = System.Activator.CreateInstance(clientType);
                 var createSessionMethod = clientType.GetMethod("CreateSession");
                 _session = createSessionMethod?.Invoke(client, null);
                 _isAvailable = _session != null;
@@ -70,33 +70,35 @@ Requirements:
 
 Reply with ONLY the suggested name, nothing else. No explanations.";
 
-            // Use dynamic to call the method
-            dynamic message = CreateMessage(prompt);
-            dynamic response = await _session.SendAndWaitAsync(message);
+            // Invoke SendAndWaitAsync via reflection
+            var sessionType = _session.GetType();
+            var sendMethod = sessionType.GetMethod("SendAndWaitAsync");
             
-            var suggested = ((string)response.Content).Trim().ToLower()
-                .Replace(" ", "-")
-                .Replace("_", "-");
+            if (sendMethod != null)
+            {
+                var task = (Task<object>)sendMethod.Invoke(_session, new object[] { prompt })!;
+                var response = await task;
+                
+                // Get Text property from response
+                var textProperty = response.GetType().GetProperty("Text");
+                var responseText = (string)textProperty!.GetValue(response)!;
+                
+                var suggested = responseText.Trim().ToLower()
+                    .Replace(" ", "-")
+                    .Replace("_", "-");
 
-            // Clean up
-            suggested = System.Text.RegularExpressions.Regex.Replace(suggested, @"[^a-z0-9-]", "");
-            
-            return suggested.Length > 50 ? suggested.Substring(0, 50) : suggested;
+                // Clean up
+                suggested = System.Text.RegularExpressions.Regex.Replace(suggested, @"[^a-z0-9-]", "");
+                
+                return suggested.Length > 50 ? suggested.Substring(0, 50) : suggested;
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"??  Copilot suggestion failed: {ex.Message}");
-            return GenerateFallbackName(description);
         }
-    }
-
-    private dynamic CreateMessage(string content)
-    {
-        var assembly = Assembly.Load("GitHub.Copilot");
-        var messageType = assembly.GetType("GitHub.Copilot.CopilotMessage");
-        var message = Activator.CreateInstance(messageType!);
-        messageType!.GetProperty("Content")!.SetValue(message, content);
-        return message!;
+        
+        return GenerateFallbackName(description);
     }
 
     /// <summary>
@@ -129,15 +131,24 @@ Respond in JSON format:
   ""suggestion"": ""corrected version if applicable""
 }}";
 
-            dynamic message = CreateMessage(prompt);
-            dynamic response = await _session.SendAndWaitAsync(message);
+            var sessionType = _session.GetType();
+            var sendMethod = sessionType.GetMethod("SendAndWaitAsync");
             
-            // Try to parse JSON response
-            var json = System.Text.Json.JsonSerializer.Deserialize<ValidationResponse>((string)response.Content);
-            
-            if (json != null)
+            if (sendMethod != null)
             {
-                return (json.IsValid, json.Message, json.Suggestion);
+                var task = (Task<object>)sendMethod.Invoke(_session, new object[] { prompt })!;
+                var response = await task;
+                
+                var textProperty = response.GetType().GetProperty("Text");
+                var responseText = (string)textProperty!.GetValue(response)!;
+                
+                // Try to parse JSON response
+                var json = System.Text.Json.JsonSerializer.Deserialize<ValidationResponse>(responseText);
+                
+                if (json != null)
+                {
+                    return (json.IsValid, json.Message, json.Suggestion);
+                }
             }
         }
         catch
@@ -177,15 +188,26 @@ Include sections for:
 
 Use markdown format. Be professional and concise.";
 
-            dynamic message = CreateMessage(prompt);
-            dynamic response = await _session.SendAndWaitAsync(message);
-            return (string)response.Content;
+            var sessionType = _session.GetType();
+            var sendMethod = sessionType.GetMethod("SendAndWaitAsync");
+            
+            if (sendMethod != null)
+            {
+                var task = (Task<object>)sendMethod.Invoke(_session, new object[] { prompt })!;
+                var response = await task;
+                
+                var textProperty = response.GetType().GetProperty("Text");
+                var responseText = (string)textProperty!.GetValue(response)!;
+                
+                return responseText;
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"??  Enhanced README generation failed: {ex.Message}");
-            return string.Empty;
         }
+        
+        return string.Empty;
     }
 
     private static string GenerateFallbackName(string description)
