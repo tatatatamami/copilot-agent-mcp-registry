@@ -1,0 +1,50 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "my-test-mcp-5",
+    "description": "test",
+    "version": "1.0.0",
+    "contact": {
+      "name": "tamami",
+      "email": ""
+    }
+  },
+  "servers": [],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check endpoint",
+        "description": "Returns the health status of the MCP server",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Healthy"
+          },
+          "503": {
+            "description": "Unhealthy"
+          }
+        }
+      },
+      "post": null
+    },
+    "/mcp": {
+      "get": null,
+      "post": {
+        "summary": "MCP protocol endpoint",
+        "description": "Main endpoint for MCP protocol communication",
+        "operationId": "mcpEndpoint",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    }
+  }
+}
