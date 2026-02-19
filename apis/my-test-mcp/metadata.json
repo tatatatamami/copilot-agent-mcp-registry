@@ -1,0 +1,15 @@
+{
+  "name": "my-test-mcp",
+  "description": "test",
+  "version": "1.0.0",
+  "company": "test",
+  "status": "active",
+  "lifecycle": "design",
+  "owner": "tamami",
+  "authMethod": "none",
+  "contactEmail": "test@test.com",
+  "endpointUrl": "",
+  "documentationUrl": "",
+  "tags": [],
+  "customProperties": {}
+}
