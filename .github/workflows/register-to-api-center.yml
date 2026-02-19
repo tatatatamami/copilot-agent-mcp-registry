@@ -72,7 +72,11 @@ jobs:
             VERSION=$(jq -r '.version' "$METADATA_FILE")
             LIFECYCLE=$(jq -r '.lifecycle' "$METADATA_FILE")
             
+            # Convert version to API Center compatible format (remove dots)
+            VERSION_ID=$(echo "$VERSION" | tr '.' '-')
+            
             echo "Registering API: $API_NAME (version $VERSION)"
+            echo "Using version ID: $VERSION_ID"
             
             # Create or update API
             az apic api create \
@@ -90,7 +94,7 @@ jobs:
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --service-name "$AZURE_API_CENTER_NAME" \
               --api-id "$API_NAME" \
-              --version-id "$VERSION" \
+              --version-id "$VERSION_ID" \
               --title "$VERSION" \
               --lifecycle-stage "$LIFECYCLE" \
               || echo "Version may already exist, continuing..."
@@ -100,7 +104,7 @@ jobs:
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --service-name "$AZURE_API_CENTER_NAME" \
               --api-id "$API_NAME" \
-              --version-id "$VERSION" \
+              --version-id "$VERSION_ID" \
               --definition-id "openapi" \
               --title "OpenAPI"
               
@@ -108,7 +112,7 @@ jobs:
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --service-name "$AZURE_API_CENTER_NAME" \
               --api-id "$API_NAME" \
-              --version-id "$VERSION" \
+              --version-id "$VERSION_ID" \
               --definition-id "openapi" \
               --format "inline" \
               --value @"$OPENAPI_FILE" \
