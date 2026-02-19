@@ -1,0 +1,15 @@
+{
+  "name": "my-awesome-mcp",
+  "description": "Brief description of what this MCP server does",
+  "version": "1.0.0",
+  "company": "test",
+  "status": "active",
+  "lifecycle": "testing",
+  "owner": "tamami",
+  "authMethod": "api-key",
+  "contactEmail": "tamami@test.com",
+  "endpointUrl": "",
+  "documentationUrl": "",
+  "tags": [],
+  "customProperties": {}
+}
