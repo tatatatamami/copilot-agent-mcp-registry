@@ -71,12 +71,37 @@ dotnet build
 
 ### Register a New MCP Server
 
-1. Run the registration assistant:
+#### Option 1: Using Copilot CLI (TypeScript) - 🤖 **Recommended**
+
+The Copilot CLI provides AI-powered suggestions and validation using GitHub Copilot SDK.
+
+```bash
+cd src/copilot-cli
+npm install
+npm run dev
+```
+
+**Features:**
+- 🤖 AI-powered server name suggestions
+- ✅ Intelligent validation
+- 🎨 Beautiful interactive UI
+- 📝 Enhanced documentation generation
+
+See [Copilot CLI README](src/copilot-cli/README.md) for more details.
+
+#### Option 2: Using .NET CLI (Classic)
+
+The classic .NET CLI provides basic registration functionality.
+
 ```bash
 dotnet run --project src/McpRegistration.Cli
 ```
 
-2. Follow the interactive prompts to provide:
+---
+
+### Common Steps (Both CLIs)
+
+1. Follow the interactive prompts to provide:
    - MCP Server Name (lowercase, hyphens only)
    - Description
    - Version (semantic versioning)
@@ -90,20 +115,20 @@ dotnet run --project src/McpRegistration.Cli
    - Documentation URL
    - Tags
 
-3. The tool will:
+2. The tool will:
    - ✅ Validate your inputs
    - ✅ Generate required files in `apis/<mcp-name>/`
    - ✅ Create a new Git branch
    - ✅ Commit the changes
 
-4. Push the branch and create a Pull Request:
+3. Push the branch and create a Pull Request:
 ```bash
 git push -u origin mcp-registration/<mcp-name>
 ```
 
-5. Create a PR on GitHub using the provided template
+4. Create a PR on GitHub using the provided template
 
-6. After approval and merge, GitHub Actions will automatically register your MCP to Azure API Center
+5. After approval and merge, GitHub Actions will automatically register your MCP to Azure API Center
 
 ## 📁 Repository Structure
 
