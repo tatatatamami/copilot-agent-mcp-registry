@@ -1,203 +1,332 @@
 # MCP Server Registry with Azure API Center
 
-> Automated MCP (Model Context Protocol) server registration system using Git-based workflow (Pull Requests), Copilot SDK, and Azure API Center integration.
+> Git ベースのワークフロー（Pull Request）、GitHub Copilot SDK、Azure API Center を組み合わせた MCP サーバー自動登録システム
 
-## 🎯 Overview
+## 全体概要
 
-This repository serves as a centralized registry for MCP servers within your organization. It provides:
+このリポジトリは、組織内の MCP（Model Context Protocol）サーバーを一元管理するためのレジストリです。
 
-- **📝 Git-based Registration**: Submit MCP servers via Pull Requests for review and approval
-- **🤖 Copilot SDK Assistant**: Interactive CLI tool that guides you through the registration process
-- **☁️ Azure API Center Integration**: Automatic registration to Azure API Center upon PR merge
-- **📚 Self-hosted Portal**: Browse and discover MCP servers through Azure API Center Portal
-- **✅ Governance**: Built-in approval workflow with audit trail
+**登録者が行う操作は、MCPサーバーのリポジトリURLを入力するだけです。** GitHub Copilot SDK が自動的にリポジトリを解析してメタデータを生成し、ユーザーが確認・承認すると、登録に必要なファイルの生成・ブランチ作成・コミット・プッシュ・Pull Request 作成までを自動化します。Pull Request がマージされると、GitHub Actions が Azure API Center へ自動登録します。
 
-## 🏗️ Architecture
+主な特長：
+
+- **🔗 URLのみで登録**: 対象 MCP サーバーのリポジトリ URL を入力するだけで登録を開始できます
+- **🤖 Copilot SDK によるメタデータ自動生成**: GitHub Copilot SDK がリポジトリを解析し、名前・説明・認証方式などのメタデータをすべて自動生成します
+- **📝 Git ベースのガバナンス**: Pull Request を通じたレビュー・承認フローにより、登録内容の品質と追跡可能性を確保します
+- **☁️ Azure API Center への自動登録**: PR マージ後、GitHub Actions が自動で Azure API Center へ登録します
+- **📚 セルフホスト型ポータル**: Azure API Center Portal を通じて登録済み MCP サーバーを検索・閲覧できます
+
+---
+
+## ロジック
+
+### 登録フロー（リポジトリ URL を入力してから API Center に登録されるまで）
 
 ```
-┌─────────────────┐
-│  Developer      │
-│  (CLI Tool)     │
-└────────┬────────┘
-         │ 1. Input metadata
-         │ 2. Generate files
-         │ 3. Create PR
-         ▼
-┌─────────────────────────┐
-│  GitHub Repository      │
-│  ├── apis/              │
-│  │   └── <mcp-name>/    │
-│  │       ├── openapi.json
-│  │       ├── metadata.json
-│  │       └── README.md   │
-│  └── .github/workflows/ │
-└────────┬────────────────┘
-         │ 4. PR Merge
-         │ 5. GitHub Actions
-         ▼
-┌─────────────────────────┐
-│  Azure API Center       │
-│  (System of Record)     │
-└────────┬────────────────┘
-         │ 6. Portal Access
-         ▼
-┌─────────────────────────┐
-│  API Center Portal      │
-│  (Self-hosted)          │
-└─────────────────────────┘
+[ユーザー]
+   │
+   │ 1. CLIツールを起動
+   │    dotnet run --project src/McpRegistration.Cli
+   │
+   │ 2. MCPサーバーのリポジトリURLを入力（これだけ！）
+   │    例: https://github.com/org/my-mcp-server
+   │
+   ▼
+[GitHub Copilot SDK]
+   │
+   │ 3. リポジトリURLを解析し、以下のメタデータを自動生成：
+   │    - name, description, summary, version
+   │    - company, owner, status, lifecycle
+   │    - authMethod, endpointUrl, documentationUrl, tags
+   │
+   │ 4. ask_user ツールを通じて生成内容をユーザーに提示し確認を求める
+   │    「これらの値で登録を進めますか？ (yes/no)」
+   │
+   ▼
+[CLIツール（ユーザーが "yes" と回答した場合）]
+   │
+   │ 5. メタデータのバリデーション
+   │
+   │ 6. 登録ファイルを apis/<mcp-name>/ に生成：
+   │    - metadata.json  （Azure API Center 用メタデータ）
+   │    - openapi.json   （OpenAPI 3.0 仕様）
+   │    - README.md      （ドキュメント）
+   │
+   │ 7. Git ブランチを作成: mcp-registration/<mcp-name>
+   │
+   │ 8. 変更をコミット
+   │
+   │ 9. ブランチをプッシュし、Pull Request を自動作成
+   │
+   ▼
+[GitHub（レビュー・承認プロセス）]
+   │
+   │ 10. チームによる Pull Request レビュー
+   │
+   │ 11. 承認後、main ブランチへマージ
+   │
+   ▼
+[GitHub Actions]
+   │
+   │ 12. apis/ 配下の変更を検知
+   │
+   │ 13. Azure CLI (az apic) を使って Azure API Center へ登録：
+   │     - API エントリの作成
+   │     - バージョンの作成
+   │     - OpenAPI 仕様のインポート
+   │
+   ▼
+[Azure API Center]
+   │
+   │ 14. MCP サーバーが API Center のカタログに追加される
+   │
+   ▼
+[API Center Portal（セルフホスト）]
+   │
+   │ 15. 登録済み MCP サーバーを検索・閲覧できる
 ```
 
-## 🚀 Quick Start
+---
 
-### Prerequisites
+## アーキテクチャ
 
-- .NET 10.0 SDK or later
+```
+┌───────────────────────────────────────────────────────────────┐
+│  ローカル環境                                                  │
+│                                                               │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  McpRegistration.Cli (CLIツール)                        │  │
+│  │                                                         │  │
+│  │  ┌──────────────────┐   ┌──────────────────────────┐   │  │
+│  │  │ CopilotService   │   │ FileGenerationService    │   │  │
+│  │  │                  │   │                          │   │  │
+│  │  │ GitHub Copilot   │   │ metadata.json 生成        │   │  │
+│  │  │ SDK を使って      │   │ openapi.json 生成         │   │  │
+│  │  │ URLからメタデータ │   │ README.md 生成            │   │  │
+│  │  │ を自動生成        │   │                          │   │  │
+│  │  └────────┬─────────┘   └──────────────────────────┘   │  │
+│  │           │                                             │  │
+│  │  ┌────────▼─────────┐   ┌──────────────────────────┐   │  │
+│  │  │ ValidationService│   │ GitService               │   │  │
+│  │  │ メタデータ検証    │   │ ブランチ作成・コミット・  │   │  │
+│  │  │                  │   │ プッシュ・PR作成          │   │  │
+│  │  └──────────────────┘   └──────────────────────────┘   │  │
+│  └─────────────────────────────────────────────────────────┘  │
+└─────────────────────┬─────────────────────────────────────────┘
+                      │ git push + PR 作成
+                      ▼
+┌───────────────────────────────────────────────────────────────┐
+│  GitHub Repository                                            │
+│                                                               │
+│  apis/                                                        │
+│  └── <mcp-name>/                                              │
+│      ├── metadata.json                                        │
+│      ├── openapi.json                                         │
+│      └── README.md                                            │
+│                                                               │
+│  .github/workflows/                                           │
+│  └── register-to-api-center.yml  ← PR マージ後に起動          │
+└─────────────────────┬─────────────────────────────────────────┘
+                      │ PR マージ → GitHub Actions 起動
+                      ▼
+┌───────────────────────────────────────────────────────────────┐
+│  GitHub Actions                                               │
+│                                                               │
+│  1. 変更された apis/ ディレクトリを検出                        │
+│  2. Azure Login (サービスプリンシパル認証)                    │
+│  3. az apic api create         → API エントリ作成             │
+│  4. az apic api version create → バージョン作成               │
+│  5. az apic api definition ... → OpenAPI 仕様インポート       │
+└─────────────────────┬─────────────────────────────────────────┘
+                      │
+                      ▼
+┌───────────────────────────────────────────────────────────────┐
+│  Azure API Center（システム・オブ・レコード）                  │
+│                                                               │
+│  登録済み MCP サーバーの一元管理・カタログ                     │
+└─────────────────────┬─────────────────────────────────────────┘
+                      │
+                      ▼
+┌───────────────────────────────────────────────────────────────┐
+│  API Center Portal（セルフホスト）                             │
+│                                                               │
+│  MCP サーバーの検索・閲覧・ドキュメント参照                    │
+└───────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## GitHub Copilot SDK について
+
+### 役割
+
+`CopilotService`（`src/McpRegistration.Core/Services/CopilotService.cs`）が GitHub Copilot SDK（`GitHub.Copilot.SDK` パッケージ）を使用し、以下の処理を担います：
+
+1. **リポジトリ解析とメタデータ自動生成**: 入力されたリポジトリ URL をもとに、Copilot が以下のメタデータをすべて自動生成します：
+   - `name`（MCP サーバー名）
+   - `description`（詳細説明）
+   - `summary`（1行サマリー）
+   - `version`（バージョン）
+   - `company`（組織名）
+   - `owner`（オーナー）
+   - `status`（active / deprecated / planned）
+   - `lifecycle`（development / production など）
+   - `authMethod`（認証方式）
+   - `endpointUrl`（エンドポイント URL）
+   - `documentationUrl`（ドキュメント URL）
+   - `tags`（タグ一覧）
+
+2. **ユーザーへの確認（ask_user ツール）**: 生成したメタデータをユーザーに提示し、`ask_user` ツールを通じてインタラクティブに確認を求めます。ユーザーが承認した場合のみ登録処理を継続します。
+
+### 導入目的
+
+従来のCLIツールでは、ユーザーが名前・説明・認証方式・ライフサイクルなど多数のフィールドをすべて手動で入力する必要がありました。GitHub Copilot SDK を導入することで：
+
+- **入力の簡素化**: ユーザーが入力するのは**リポジトリ URL のみ**になり、登録の手間を大幅に削減
+- **メタデータ品質の向上**: Copilot がリポジトリの内容を解析して適切な値を提案するため、一貫性のある高品質なメタデータを生成
+- **確認フローの組み込み**: 自動生成された内容をユーザーが確認・承認するフローを維持することで、ガバナンスを確保
+
+### フォールバック動作
+
+GitHub Copilot SDK が利用できない環境では、`GenerateFallbackMetadata` が呼び出され、リポジトリ URL から基本的なメタデータのみを生成します（名前・バージョンなど最低限の情報のみ）。
+
+---
+
+## クイックスタート
+
+### 前提条件
+
+- .NET 10.0 SDK 以降
 - Git
-- Access to this repository
-- (For deployment) Azure subscription with API Center instance
+- このリポジトリへのアクセス権
+- （デプロイ用）Azure サブスクリプションと API Center インスタンス
 
-### Installation
+### セットアップ
 
-1. Clone the repository:
+1. リポジトリをクローン：
 ```bash
 git clone https://github.com/tatatatamami/copilot-agent-mcp-registry.git
 cd copilot-agent-mcp-registry
 ```
 
-2. Build the CLI tool:
+2. CLI ツールをビルド：
 ```bash
 dotnet build
 ```
 
-### Register a New MCP Server
+### MCP サーバーの登録
 
-1. Run the registration assistant:
+1. 登録アシスタントを起動：
 ```bash
 dotnet run --project src/McpRegistration.Cli
 ```
 
-2. Follow the interactive prompts to provide:
-   - MCP Server Name (lowercase, hyphens only)
-   - Description
-   - Version (semantic versioning)
-   - Company/Organization
-   - Owner (person or team name)
-   - Contact Email
-   - Status (active, deprecated, planned)
-   - Lifecycle (design, development, testing, preview, production, deprecated, retired)
-   - Authentication Method (none, api-key, oauth2, entra-id)
-   - Endpoint URL
-   - Documentation URL
-   - Tags
-
-3. The tool will:
-   - ✅ Validate your inputs
-   - ✅ Generate required files in `apis/<mcp-name>/`
-   - ✅ Create a new Git branch
-   - ✅ Commit the changes
-
-4. Push the branch and create a Pull Request:
-```bash
-git push -u origin mcp-registration/<mcp-name>
+2. MCPサーバーのリポジトリ URL を入力（これだけ！）：
+```
+Repository URL (where the MCP server is hosted): https://github.com/your-org/your-mcp-server
 ```
 
-5. Create a PR on GitHub using the provided template
+3. Copilot がリポジトリを解析し、メタデータを自動生成した後、確認を求めます：
+```
+🤖 Copilot: Generated metadata:
+  name: your-mcp-server
+  description: ...
+  Would you like to proceed with registration? (yes/no)
+Your answer: yes
+```
 
-6. After approval and merge, GitHub Actions will automatically register your MCP to Azure API Center
+4. 以下が自動的に実行されます：
+   - ✅ メタデータのバリデーション
+   - ✅ `apis/<mcp-name>/` への登録ファイル生成（metadata.json, openapi.json, README.md）
+   - ✅ Git ブランチ作成・コミット
 
-## 📁 Repository Structure
+5. ブランチのプッシュと Pull Request 作成の確認が表示されます：
+```
+Push branch and create Pull Request? (y/n): y
+```
+
+6. Pull Request が承認・マージされると、GitHub Actions が自動で Azure API Center に登録します
+
+---
+
+## リポジトリ構成
 
 ```
 ├── .github/
 │   ├── workflows/
-│   │   └── register-to-api-center.yml    # Automated registration workflow
+│   │   └── register-to-api-center.yml    # 自動登録ワークフロー（PR マージ時に起動）
 │   └── PULL_REQUEST_TEMPLATE/
-│       └── mcp-registration.md           # PR template for reviews
+│       └── mcp-registration.md           # MCP 登録用 PR テンプレート
 ├── apis/
-│   └── <mcp-name>/                       # One directory per MCP server
-│       ├── openapi.json                  # OpenAPI 3.0 specification
-│       ├── metadata.json                 # Metadata for API Center
-│       └── README.md                     # Documentation
+│   └── <mcp-name>/                       # MCP サーバーごとのディレクトリ
+│       ├── openapi.json                  # OpenAPI 3.0 仕様
+│       ├── metadata.json                 # Azure API Center 用メタデータ
+│       └── README.md                     # ドキュメント
 ├── catalog/
-│   └── index.yaml                        # Optional: catalog index
+│   └── index.yaml                        # カタログインデックス（オプション）
 ├── src/
-│   ├── McpRegistration.Cli/              # Interactive CLI tool
-│   └── McpRegistration.Core/             # Core libraries
-│       ├── Models/                       # Data models
-│       └── Services/                     # Business logic
-└── README.md                             # This file
+│   ├── McpRegistration.Cli/              # CLIツール（エントリポイント）
+│   │   └── Program.cs
+│   └── McpRegistration.Core/             # コアライブラリ
+│       ├── Models/
+│       │   └── McpMetadata.cs            # データモデル
+│       └── Services/
+│           ├── CopilotService.cs         # GitHub Copilot SDK 連携
+│           ├── FileGenerationService.cs  # 登録ファイル生成
+│           ├── GitService.cs             # Git 操作
+│           └── ValidationService.cs      # バリデーション
+└── README.md
 ```
 
-## 📋 Metadata Schema
+---
 
-Each MCP server requires the following metadata:
+## メタデータスキーマ
 
-### Required Fields
+### 必須フィールド
 
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `name` | string | MCP server name (lowercase, hyphens) | `my-awesome-mcp` |
-| `description` | string | Brief description | `Provides data analysis capabilities` |
-| `version` | string | Semantic version | `1.0.0` |
-| `company` | string | Owning organization | `Contoso Ltd` |
-| `owner` | string | Owner name | `Platform Team` |
-| `status` | string | Current status | `active`, `deprecated`, `planned` |
-| `lifecycle` | string | Development stage | `production`, `development`, etc. |
-| `authMethod` | string | Authentication type | `api-key`, `oauth2`, `entra-id`, `none` |
+| フィールド | 型 | 説明 | 例 |
+|-----------|-----|------|-----|
+| `name` | string | MCP サーバー名（小文字・ハイフン区切り） | `my-awesome-mcp` |
+| `description` | string | 詳細説明（2〜3文） | `Provides data analysis capabilities` |
+| `version` | string | セマンティックバージョン | `1.0.0` |
+| `company` | string | 所有組織名 | `Contoso Ltd` |
+| `owner` | string | オーナー名 | `Platform Team` |
+| `status` | string | 現在のステータス | `active`, `deprecated`, `planned` |
+| `lifecycle` | string | 開発ステージ | `production`, `development`, etc. |
+| `authMethod` | string | 認証方式 | `api-key`, `oauth2`, `entra-id`, `none` |
 
-### Optional Fields
+### オプションフィールド
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `contactEmail` | string | Contact email address |
-| `endpointUrl` | string | MCP server endpoint |
-| `documentationUrl` | string | Link to documentation |
-| `tags` | array | Categorization tags |
-| `customProperties` | object | Additional metadata |
+| フィールド | 型 | 説明 |
+|-----------|-----|------|
+| `summary` | string | 1行サマリー（100文字以内） |
+| `contactEmail` | string | 連絡先メールアドレス |
+| `endpointUrl` | string | MCP サーバーのエンドポイント URL |
+| `documentationUrl` | string | ドキュメント URL |
+| `tags` | array | カテゴリタグ |
+| `customProperties` | object | 追加カスタムプロパティ |
+| `repositoryUrl` | string | MCP サーバーのソースリポジトリ URL |
 
-## 🔐 Authentication Methods
+---
 
-### API Key (`api-key`)
-Standard API key authentication using Bearer tokens. Suitable for most internal services.
+## GitHub Actions セットアップ
 
-### OAuth 2.0 (`oauth2`)
-OAuth 2.0 flow for delegated access. Use when user authorization is required.
+### 必要なシークレット
 
-### Microsoft Entra ID (`entra-id`)
-Entra ID (formerly Azure AD) authentication. Recommended for enterprise scenarios with existing Azure/Microsoft 365 integration.
+GitHub リポジトリの設定で以下のシークレットを設定してください：
 
-### None (`none`)
-No authentication required. **Only use for development/internal environments.**
+| シークレット | 説明 |
+|------------|------|
+| `AZURE_CLIENT_ID` | サービスプリンシパルのクライアント ID |
+| `AZURE_CLIENT_SECRET` | サービスプリンシパルのクライアントシークレット |
+| `AZURE_TENANT_ID` | Azure AD テナント ID |
+| `AZURE_SUBSCRIPTION_ID` | Azure サブスクリプション ID |
+| `AZURE_API_CENTER_NAME` | API Center インスタンス名 |
+| `AZURE_RESOURCE_GROUP` | リソースグループ名 |
 
-## 🔄 Lifecycle Stages
+### Azure セットアップ
 
-| Stage | Description | When to Use |
-|-------|-------------|-------------|
-| `design` | API is being designed | Initial planning phase |
-| `development` | Under active development | Default for new MCPs |
-| `testing` | In testing/QA phase | Before production release |
-| `preview` | Public preview/beta | Limited production use |
-| `production` | Generally available | Stable, production-ready |
-| `deprecated` | Marked for retirement | Supported but not recommended |
-| `retired` | No longer available | Shut down |
-
-## ⚙️ GitHub Actions Setup
-
-### Required Secrets
-
-Configure these secrets in your GitHub repository settings:
-
-| Secret | Description |
-|--------|-------------|
-| `AZURE_CLIENT_ID` | Service Principal Client ID |
-| `AZURE_TENANT_ID` | Azure AD Tenant ID |
-| `AZURE_SUBSCRIPTION_ID` | Azure Subscription ID |
-| `AZURE_API_CENTER_NAME` | API Center instance name |
-| `AZURE_RESOURCE_GROUP` | Resource group name |
-
-### Azure Setup
-
-1. Create an Azure API Center instance:
+1. Azure API Center インスタンスを作成：
 ```bash
 az apic create \
   --resource-group <resource-group> \
@@ -205,88 +334,80 @@ az apic create \
   --location <region>
 ```
 
-2. Create a Service Principal for GitHub Actions:
+2. GitHub Actions 用サービスプリンシパルを作成：
 ```bash
 az ad sp create-for-rbac \
   --name "GitHub-Actions-API-Center" \
-  --role "API Management Service Contributor" \
+  --role "Contributor" \
   --scopes /subscriptions/<subscription-id>/resourceGroups/<resource-group> \
   --sdk-auth
 ```
 
-3. Configure federated credentials for OIDC (recommended):
-```bash
-az ad app federated-credential create \
-  --id <app-id> \
-  --parameters credential.json
-```
+---
 
-## 📊 Self-hosted API Center Portal
+## ライフサイクルステージ
 
-To set up the self-hosted portal for browsing registered APIs:
+| ステージ | 説明 |
+|---------|------|
+| `design` | 設計フェーズ |
+| `development` | 開発中（新規 MCP のデフォルト） |
+| `testing` | テスト・QA フェーズ |
+| `preview` | パブリックプレビュー・ベータ |
+| `production` | 本番稼働中（安定版） |
+| `deprecated` | 廃止予定（引き続きサポートされるが非推奨） |
+| `retired` | 廃止済み |
 
-1. Follow the Microsoft Learn guide: [Self-host API Center Portal](https://learn.microsoft.com/azure/api-center/self-host-api-center-portal)
+---
 
-2. Configure portal to point to your API Center instance
+## セルフホスト型 API Center Portal
 
-3. Deploy to Azure App Service or your preferred hosting platform
+登録済み API を閲覧するためのポータルを設定する方法：
 
-The portal provides:
-- 🔍 Search and discovery of registered MCPs
-- 📖 API documentation viewer
-- 🏷️ Filtering by metadata (company, lifecycle, tags)
-- 📋 OpenAPI specification viewer
+1. Microsoft Learn のガイドを参照: [Self-host API Center Portal](https://learn.microsoft.com/azure/api-center/self-host-api-center-portal)
 
-## 🛠️ Development
+2. ポータルを自分の API Center インスタンスに接続するよう設定
 
-### Build the Solution
+3. Azure App Service などのホスティングプラットフォームにデプロイ
+
+ポータルでできること：
+- 🔍 登録済み MCP の検索・発見
+- 📖 API ドキュメントの閲覧
+- 🏷️ メタデータ（組織・ライフサイクル・タグ）によるフィルタリング
+- 📋 OpenAPI 仕様の参照
+
+---
+
+## 開発者向け情報
+
+### ソリューションのビルド
 
 ```bash
 dotnet build
 ```
 
-### Run Tests (if available)
-
-```bash
-dotnet test
-```
-
-### Run the CLI Locally
+### CLI のローカル実行
 
 ```bash
 cd src/McpRegistration.Cli
 dotnet run
 ```
 
-## 📚 References
+---
 
-- [Azure API Center Documentation](https://learn.microsoft.com/azure/api-center/)
-- [Register APIs with GitHub Actions](https://learn.microsoft.com/azure/api-center/register-apis-github-actions)
-- [API Center Metadata](https://learn.microsoft.com/azure/api-center/metadata)
+## 参考リンク
+
+- [Azure API Center ドキュメント](https://learn.microsoft.com/azure/api-center/)
+- [GitHub Actions による API 登録](https://learn.microsoft.com/azure/api-center/register-apis-github-actions)
 - [Self-host API Center Portal](https://learn.microsoft.com/azure/api-center/self-host-api-center-portal)
-- [MCP (Model Context Protocol) Specification](https://modelcontextprotocol.io/)
-
-## 🤝 Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Submit a Pull Request
-4. Ensure all checks pass
-
-For MCP server registrations, use the CLI tool and follow the standard registration process.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-For questions or issues:
-1. Check existing documentation
-2. Search closed issues
-3. Create a new issue with detailed description
-4. Contact the platform team
+- [MCP（Model Context Protocol）仕様](https://modelcontextprotocol.io/)
+- [GitHub Copilot SDK](https://www.nuget.org/packages/GitHub.Copilot.SDK)
 
 ---
 
-**System of Record**: Azure API Center is the authoritative source for all registered MCP servers. This repository serves as the registration interface and audit trail.
+## ライセンス
+
+このプロジェクトは MIT ライセンスのもとで公開されています。詳細は LICENSE ファイルを参照してください。
+
+---
+
+**システム・オブ・レコード**: Azure API Center がすべての登録済み MCP サーバーの正規の情報源です。このリポジトリは登録インターフェースおよび監査証跡として機能します。
