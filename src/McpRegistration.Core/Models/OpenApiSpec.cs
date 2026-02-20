@@ -14,7 +14,8 @@ public class OpenApiSpec
 public class OpenApiInfo
 {
     public string Title { get; set; } = string.Empty;
-    public string? Summary { get; set; }
+    // Note: 'summary' is NOT a valid property in OpenAPI 3.0 info object
+    // Use 'description' instead for summary information
     public string Description { get; set; } = string.Empty;
     public string Version { get; set; } = "1.0.0";
     public OpenApiContact? Contact { get; set; }
