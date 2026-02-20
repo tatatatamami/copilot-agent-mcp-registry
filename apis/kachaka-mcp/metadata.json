@@ -1,0 +1,26 @@
+{
+  "name": "kachaka-mcp",
+  "description": "An MCP server that exposes the Kachaka home delivery robot\u0027s capabilities to AI models via the Model Context Protocol. It enables AI models like Claude, GPT-4, and local LLMs to monitor and control a Kachaka robot. Features include robot movement, shelf operations, sensor data access, and map management.",
+  "summary": "MCP server for controlling Kachaka home delivery robots via AI models",
+  "version": "1.0.0",
+  "company": "comoc",
+  "status": "active",
+  "lifecycle": "development",
+  "owner": "comoc",
+  "authMethod": "api-key",
+  "contactEmail": "",
+  "endpointUrl": "",
+  "documentationUrl": "https://github.com/comoc/kachaka-mcp",
+  "tags": [
+    "robot",
+    "kachaka",
+    "mcp",
+    "robotics",
+    "grpc",
+    "python",
+    "ai",
+    "test"
+  ],
+  "customProperties": {},
+  "repositoryUrl": "https://github.com/comoc/kachaka-mcp"
+}
