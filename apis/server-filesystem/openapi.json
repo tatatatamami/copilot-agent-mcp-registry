@@ -1,0 +1,48 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "server-filesystem",
+    "description": "MCP server for secure filesystem operations with configurable directory access controls\n\nA Node.js MCP server implementing the Model Context Protocol for secure filesystem operations, including reading, writing, creating, listing, moving, and searching files and directories. It enforces configurable access controls via command-line arguments or the MCP Roots protocol, restricting all operations to explicitly allowed directories.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "modelcontextprotocol",
+      "email": ""
+    }
+  },
+  "servers": [],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check endpoint",
+        "description": "Returns the health status of the MCP server",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Healthy"
+          },
+          "503": {
+            "description": "Unhealthy"
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "summary": "MCP protocol endpoint",
+        "description": "Main endpoint for MCP protocol communication",
+        "operationId": "mcpEndpoint",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    }
+  }
+}
