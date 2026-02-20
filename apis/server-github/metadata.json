@@ -1,0 +1,26 @@
+{
+  "name": "server-github",
+  "description": "MCP Server for the GitHub API enabling file operations, repository management, issue/PR management, and search functionality. It supports creating and updating files, managing branches, searching code and repositories, and interacting with GitHub\u0027s full API surface. This project has been deprecated in favor of the official github/github-mcp-server.",
+  "summary": "MCP server for GitHub API: file ops, repo management, issues, PRs, and search",
+  "version": "1.0.0",
+  "company": "modelcontextprotocol",
+  "status": "deprecated",
+  "lifecycle": "deprecated",
+  "owner": "modelcontextprotocol",
+  "authMethod": "api-key",
+  "contactEmail": "",
+  "endpointUrl": "",
+  "documentationUrl": "https://github.com/modelcontextprotocol/servers-archived/tree/main/src/github",
+  "tags": [
+    "github",
+    "api",
+    "repository",
+    "mcp",
+    "version-control",
+    "git",
+    "issues",
+    "pull-requests"
+  ],
+  "customProperties": {},
+  "repositoryUrl": "https://github.com/modelcontextprotocol/server-github"
+}
