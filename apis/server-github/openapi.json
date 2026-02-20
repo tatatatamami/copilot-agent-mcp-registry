@@ -2,7 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "server-github",
-    "description": "GitHub API MCP server for file ops, repo management, and search\n\nMCP Server for the GitHub API, enabling file operations, repository management, search functionality, and more. It supports automatic branch creation, batch file operations, and advanced search across code, issues, pull requests, and users. Development has been moved to the official github/github-mcp-server repository.",
+    "summary": "MCP server for GitHub API: file ops, repo management, issues, PRs, and search",
+    "description": "MCP Server for the GitHub API enabling file operations, repository management, issue/PR management, and search functionality. It supports creating and updating files, managing branches, searching code and repositories, and interacting with GitHub\u0027s full API surface. This project has been deprecated in favor of the official github/github-mcp-server.",
     "version": "1.0.0",
     "contact": {
       "name": "modelcontextprotocol",

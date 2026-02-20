@@ -1,17 +1,17 @@
 # server-github
 
 
-> GitHub API MCP server for file ops, repo management, and search
+> MCP server for GitHub API: file ops, repo management, issues, PRs, and search
 
 ## Overview
 
-MCP Server for the GitHub API, enabling file operations, repository management, search functionality, and more. It supports automatic branch creation, batch file operations, and advanced search across code, issues, pull requests, and users. Development has been moved to the official github/github-mcp-server repository.
+MCP Server for the GitHub API enabling file operations, repository management, issue/PR management, and search functionality. It supports creating and updating files, managing branches, searching code and repositories, and interacting with GitHub's full API surface. This project has been deprecated in favor of the official github/github-mcp-server.
 
 ## Metadata
 
 - **Version**: 1.0.0
 - **Owner**: modelcontextprotocol
-- **Company**: Model Context Protocol
+- **Company**: modelcontextprotocol
 - **Status**: deprecated
 - **Lifecycle**: deprecated
 
@@ -44,7 +44,7 @@ For more details, see: https://github.com/modelcontextprotocol/servers-archived/
 
 ## Tags
 
-`github`, `api`, `repository`, `file-operations`, `search`, `issues`, `pull-requests`, `version-control`
+`github`, `api`, `repository`, `mcp`, `version-control`, `git`, `issues`, `pull-requests`
 
 ## Usage
 
