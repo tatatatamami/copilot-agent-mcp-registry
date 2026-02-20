@@ -34,13 +34,17 @@ public class FileGenerationService
     /// </summary>
     public string GenerateOpenApiSpec(McpMetadata metadata)
     {
+        // Build description with summary if available
+        var fullDescription = !string.IsNullOrEmpty(metadata.Summary) 
+            ? $"{metadata.Summary}\n\n{metadata.Description}" 
+            : metadata.Description;
+
         var spec = new OpenApiSpec
         {
             Info = new OpenApiInfo
             {
                 Title = metadata.Name,
-                Description = metadata.Description,
-                Summary = !string.IsNullOrEmpty(metadata.Summary) ? metadata.Summary : null,
+                Description = fullDescription,
                 Version = metadata.Version,
                 Contact = new OpenApiContact
                 {
