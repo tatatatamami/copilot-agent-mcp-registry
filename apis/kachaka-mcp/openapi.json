@@ -1,0 +1,48 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "kachaka-mcp",
+    "description": "MCP server for controlling Kachaka home delivery robots via AI models\n\nAn MCP server that exposes the Kachaka home delivery robot\u0027s capabilities to AI models via the Model Context Protocol. It enables AI models like Claude, GPT-4, and local LLMs to monitor and control a Kachaka robot. Features include robot movement, shelf operations, sensor data access, and map management.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "comoc",
+      "email": ""
+    }
+  },
+  "servers": [],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check endpoint",
+        "description": "Returns the health status of the MCP server",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Healthy"
+          },
+          "503": {
+            "description": "Unhealthy"
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "summary": "MCP protocol endpoint",
+        "description": "Main endpoint for MCP protocol communication",
+        "operationId": "mcpEndpoint",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    }
+  }
+}
