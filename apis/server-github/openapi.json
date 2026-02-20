@@ -1,0 +1,49 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "server-github",
+    "summary": "MCP server for GitHub API: file ops, repo management, issues, PRs, and search",
+    "description": "MCP Server for the GitHub API enabling file operations, repository management, issue/PR management, and search functionality. It supports creating and updating files, managing branches, searching code and repositories, and interacting with GitHub\u0027s full API surface. This project has been deprecated in favor of the official github/github-mcp-server.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "modelcontextprotocol",
+      "email": ""
+    }
+  },
+  "servers": [],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check endpoint",
+        "description": "Returns the health status of the MCP server",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Healthy"
+          },
+          "503": {
+            "description": "Unhealthy"
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "summary": "MCP protocol endpoint",
+        "description": "Main endpoint for MCP protocol communication",
+        "operationId": "mcpEndpoint",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    }
+  }
+}

@@ -51,6 +51,46 @@ public class GitService
     }
 
     /// <summary>
+    /// Create a pull request using the GitHub CLI (gh)
+    /// </summary>
+    public async Task<string> CreatePullRequestAsync(string title, string body, string baseBranch = "main")
+    {
+        var processStartInfo = new ProcessStartInfo
+        {
+            FileName = "gh",
+            WorkingDirectory = _repoPath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        processStartInfo.ArgumentList.Add("pr");
+        processStartInfo.ArgumentList.Add("create");
+        processStartInfo.ArgumentList.Add("--title");
+        processStartInfo.ArgumentList.Add(title);
+        processStartInfo.ArgumentList.Add("--body");
+        processStartInfo.ArgumentList.Add(body);
+        processStartInfo.ArgumentList.Add("--base");
+        processStartInfo.ArgumentList.Add(baseBranch);
+
+        using var process = Process.Start(processStartInfo);
+        if (process == null)
+            throw new InvalidOperationException("Failed to start gh process");
+
+        var output = await process.StandardOutput.ReadToEndAsync();
+        var error = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException(
+                $"Failed to create Pull Request. Ensure the GitHub CLI (gh) is installed and authenticated.\n{error}");
+        }
+
+        return output.Trim();
+    }
+
+    /// <summary>
     /// Check if branch exists locally
     /// </summary>
     public async Task<bool> BranchExistsAsync(string branchName)
@@ -68,9 +108,14 @@ public class GitService
 
     private async Task<string> ExecuteGitCommandAsync(string arguments)
     {
+        return await ExecuteCommandAsync("git", arguments);
+    }
+
+    private async Task<string> ExecuteCommandAsync(string fileName, string arguments)
+    {
         var processStartInfo = new ProcessStartInfo
         {
-            FileName = "git",
+            FileName = fileName,
             Arguments = arguments,
             WorkingDirectory = _repoPath,
             RedirectStandardOutput = true,
@@ -81,7 +126,7 @@ public class GitService
 
         using var process = Process.Start(processStartInfo);
         if (process == null)
-            throw new InvalidOperationException("Failed to start git process");
+            throw new InvalidOperationException($"Failed to start {fileName} process");
 
         var output = await process.StandardOutput.ReadToEndAsync();
         var error = await process.StandardError.ReadToEndAsync();
@@ -89,7 +134,7 @@ public class GitService
 
         if (process.ExitCode != 0)
         {
-            throw new InvalidOperationException($"Git command failed: {error}");
+            throw new InvalidOperationException($"{fileName} command failed: {error}");
         }
 
         return output.Trim();

@@ -77,4 +77,9 @@ public class McpMetadata
     /// Additional custom properties
     /// </summary>
     public Dictionary<string, string> CustomProperties { get; set; } = new();
+
+    /// <summary>
+    /// Repository URL where this MCP server source is located
+    /// </summary>
+    public string RepositoryUrl { get; set; } = string.Empty;
 }
