@@ -21,7 +21,7 @@ public class GitService
     public async Task<string> CreateBranchAsync(string mcpName)
     {
         var branchName = $"mcp-registration/{mcpName}";
-        await ExecuteGitCommandAsync($"checkout -b {branchName}");
+        await ExecuteGitCommandAsync("checkout", "-b", branchName);
         return branchName;
     }
 
@@ -30,8 +30,9 @@ public class GitService
     /// </summary>
     public async Task CommitChangesAsync(string mcpName, string message)
     {
-        await ExecuteGitCommandAsync("add .");
-        await ExecuteGitCommandAsync($"commit -m \"{message}\"");
+        var generatedApiPath = Path.Combine("apis", mcpName).Replace('\\', '/');
+        await ExecuteGitCommandAsync("add", generatedApiPath);
+        await ExecuteGitCommandAsync("commit", "-m", message);
     }
 
     /// <summary>
@@ -39,7 +40,7 @@ public class GitService
     /// </summary>
     public async Task PushBranchAsync(string branchName)
     {
-        await ExecuteGitCommandAsync($"push -u origin {branchName}");
+        await ExecuteGitCommandAsync("push", "-u", "origin", branchName);
     }
 
     /// <summary>
@@ -97,7 +98,7 @@ public class GitService
     {
         try
         {
-            var result = await ExecuteGitCommandAsync($"rev-parse --verify {branchName}");
+            var result = await ExecuteGitCommandAsync("rev-parse", "--verify", branchName);
             return !string.IsNullOrWhiteSpace(result);
         }
         catch
@@ -109,6 +110,26 @@ public class GitService
     private async Task<string> ExecuteGitCommandAsync(string arguments)
     {
         return await ExecuteCommandAsync("git", arguments);
+    }
+
+    private async Task<string> ExecuteGitCommandAsync(params string[] arguments)
+    {
+        var processStartInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            WorkingDirectory = _repoPath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        foreach (var argument in arguments)
+        {
+            processStartInfo.ArgumentList.Add(argument);
+        }
+
+        return await ExecuteCommandAsync(processStartInfo, "git");
     }
 
     private async Task<string> ExecuteCommandAsync(string fileName, string arguments)
@@ -124,6 +145,11 @@ public class GitService
             CreateNoWindow = true
         };
 
+        return await ExecuteCommandAsync(processStartInfo, fileName);
+    }
+
+    private static async Task<string> ExecuteCommandAsync(ProcessStartInfo processStartInfo, string fileName)
+    {
         using var process = Process.Start(processStartInfo);
         if (process == null)
             throw new InvalidOperationException($"Failed to start {fileName} process");

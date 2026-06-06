@@ -1,6 +1,10 @@
 # MCP Server Registry with Azure API Center
 
 > Automated MCP (Model Context Protocol) server registration system using Git-based workflow (Pull Requests), Copilot SDK, and Azure API Center integration.
+>
+> [!WARNING]
+> This repository is an experimental sample/PoC for MCP server registration workflows.
+> It is intentionally minimal and not production-ready.
 
 ## 🎯 Overview
 
@@ -19,9 +23,10 @@ This repository serves as a centralized registry for MCP servers within your org
 │  Developer      │
 │  (CLI Tool)     │
 └────────┬────────┘
-         │ 1. Input metadata
-         │ 2. Generate files
-         │ 3. Create PR
+         │ 1. Input repository URL
+         │ 2. Copilot generates metadata (user confirms)
+         │ 3. Generate files + branch + commit
+         │ 4. Optional push + PR
          ▼
 ┌─────────────────────────┐
 │  GitHub Repository      │
@@ -32,14 +37,14 @@ This repository serves as a centralized registry for MCP servers within your org
 │  │       └── README.md   │
 │  └── .github/workflows/ │
 └────────┬────────────────┘
-         │ 4. PR Merge
-         │ 5. GitHub Actions
+         │ 5. PR Merge
+         │ 6. GitHub Actions
          ▼
 ┌─────────────────────────┐
 │  Azure API Center       │
 │  (System of Record)     │
 └────────┬────────────────┘
-         │ 6. Portal Access
+         │ 7. Portal Access
          ▼
 ┌─────────────────────────┐
 │  API Center Portal      │
@@ -76,34 +81,22 @@ dotnet build
 dotnet run --project src/McpRegistration.Cli
 ```
 
-2. Follow the interactive prompts to provide:
-   - MCP Server Name (lowercase, hyphens only)
-   - Description
-   - Version (semantic versioning)
-   - Company/Organization
-   - Owner (person or team name)
-   - Contact Email
-   - Status (active, deprecated, planned)
-   - Lifecycle (design, development, testing, preview, production, deprecated, retired)
-   - Authentication Method (none, api-key, oauth2, entra-id)
-   - Endpoint URL
-   - Documentation URL
-   - Tags
+2. Follow the interactive flow:
+   - Enter the MCP server repository URL
+   - Let Copilot generate metadata from that URL
+   - Review and confirm the generated metadata
 
-3. The tool will:
-   - ✅ Validate your inputs
+3. The tool will then:
+   - ✅ Validate metadata
    - ✅ Generate required files in `apis/<mcp-name>/`
    - ✅ Create a new Git branch
    - ✅ Commit the changes
 
-4. Push the branch and create a Pull Request:
-```bash
-git push -u origin mcp-registration/<mcp-name>
-```
+4. Optionally push and create a Pull Request from the CLI prompt.
+   - If you choose **No**, local files and commit are kept and you can push manually later.
+   - If push or `gh pr create` fails (for example, missing auth/CLI), use manual git/PR steps.
 
-5. Create a PR on GitHub using the provided template
-
-6. After approval and merge, GitHub Actions will automatically register your MCP to Azure API Center
+5. After approval and merge, GitHub Actions will automatically register your MCP to Azure API Center
 
 ## 📁 Repository Structure
 
@@ -127,6 +120,9 @@ git push -u origin mcp-registration/<mcp-name>
 │       └── Services/                     # Business logic
 └── README.md                             # This file
 ```
+
+> [!NOTE]
+> Several entries currently under `apis/` are sample/demo artifacts used to demonstrate this PoC flow.
 
 ## 📋 Metadata Schema
 
