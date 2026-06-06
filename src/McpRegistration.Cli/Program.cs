@@ -156,7 +156,20 @@ class Program
         }
 
         Console.WriteLine($"Pushing branch {branchName}...");
-        await gitService.PushBranchAsync(branchName);
+        try
+        {
+            await gitService.PushBranchAsync(branchName);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"⚠️  Could not push branch automatically: {ex.Message}");
+            Console.WriteLine("   This sample still completed local file generation and commit.");
+            Console.WriteLine($"   Push manually when ready: git push -u origin {branchName}");
+            Console.ResetColor();
+            return;
+        }
 
         var prTitle = $"Register MCP server: {metadata.Name}";
         var prBody = $@"## MCP Server Registration
@@ -193,4 +206,3 @@ This PR registers the following MCP server in the registry.
         }
     }
 }
-

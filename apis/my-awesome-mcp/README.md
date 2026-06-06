@@ -1,5 +1,8 @@
 # my-awesome-mcp
 
+> [!NOTE]
+> This is a sample registration artifact for PoC/demo purposes.
+
 ## Overview
 
 Brief description of what this MCP server does
