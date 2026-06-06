@@ -48,7 +48,7 @@ public class GitService
     /// </summary>
     public async Task<string> GetCurrentBranchAsync()
     {
-        return await ExecuteGitCommandAsync("rev-parse --abbrev-ref HEAD");
+        return await ExecuteGitCommandAsync("rev-parse", "--abbrev-ref", "HEAD");
     }
 
     /// <summary>
@@ -107,11 +107,6 @@ public class GitService
         }
     }
 
-    private async Task<string> ExecuteGitCommandAsync(string arguments)
-    {
-        return await ExecuteCommandAsync("git", arguments);
-    }
-
     private async Task<string> ExecuteGitCommandAsync(params string[] arguments)
     {
         var processStartInfo = new ProcessStartInfo
@@ -132,27 +127,11 @@ public class GitService
         return await ExecuteCommandAsync(processStartInfo, "git");
     }
 
-    private async Task<string> ExecuteCommandAsync(string fileName, string arguments)
-    {
-        var processStartInfo = new ProcessStartInfo
-        {
-            FileName = fileName,
-            Arguments = arguments,
-            WorkingDirectory = _repoPath,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        return await ExecuteCommandAsync(processStartInfo, fileName);
-    }
-
-    private static async Task<string> ExecuteCommandAsync(ProcessStartInfo processStartInfo, string fileName)
+    private static async Task<string> ExecuteCommandAsync(ProcessStartInfo processStartInfo, string commandName)
     {
         using var process = Process.Start(processStartInfo);
         if (process == null)
-            throw new InvalidOperationException($"Failed to start {fileName} process");
+            throw new InvalidOperationException($"Failed to start {commandName} process");
 
         var output = await process.StandardOutput.ReadToEndAsync();
         var error = await process.StandardError.ReadToEndAsync();
@@ -160,7 +139,7 @@ public class GitService
 
         if (process.ExitCode != 0)
         {
-            throw new InvalidOperationException($"{fileName} command failed: {error}");
+            throw new InvalidOperationException($"{commandName} command failed: {error}");
         }
 
         return output.Trim();
